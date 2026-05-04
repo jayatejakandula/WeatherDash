@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Dashboard*-`— Live Weather Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="theme-pleasant">
+
+  <div class="sky-overlay" id="sky-overlay"></div>
+
+  <div class="app">
+
+    <header>
+      <div class="brand">
+        <h1>WeatherDash </h1>
+        <p>Hyperlocal climate monitoring station</p>
+      </div>
+      <div class="time-badge" id="time-badge">--:--</div>
+    </header>
+
+    <div class="api-status">
+      <div class="api-dot demo" id="api-dot"></div>
+      <span id="api-label">Demo mode — connect to /api/live for live data</span>
+    </div>
+
+    <div class="location-bar">
+      <div class="location-search-wrap">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="location-search" placeholder="Search city or location..." autocomplete="off" />
+          <div class="search-results" id="search-results"></div>
+        </div>
+        <button class="gps-btn" id="gps-btn" title="Use my current location" onclick="useMyLocation()">📍</button>
+      </div>
+    </div>
+
+    <div class="map-section">
+      <div class="map-card" id="map-card">
+        <div class="map-header" onclick="toggleMap()">
+          <div class="map-header-left">
+            <span class="map-pin-icon">📌</span>
+            <span class="map-location-name" id="map-location-name">Select a location</span>
+          </div>
+          <span class="map-toggle-icon">▼</span>
+        </div>
+        <div class="map-container">
+          <div id="leaflet-map"></div>
+        </div>
+        <div class="location-coords" id="location-coords">—</div>
+      </div>
+    </div>
+
+    <div class="alert-banner" id="alert-banner">
+      <div class="alert-dot"></div>
+      <span id="alert-text">Severe weather warning</span>
+    </div>
+
+    <div class="hero">
+      <div class="weather-icon-wrap">
+        <svg id="weather-svg" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="big-temp"><span id="val-temp">--</span><sup>°C</sup></div>
+      <div class="condition-title" id="condition-title">Loading...</div>
+      <div class="condition-sub" id="condition-sub">Fetching sensor data</div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-label">Humidity</div>
+        <div class="card-value"><span id="val-hum">--</span><span class="card-unit">%</span></div>
+        <div class="card-sub" id="hum-sub">--</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Pressure</div>
+        <div class="card-value"><span id="val-pres">--</span><span class="card-unit">hPa</span></div>
+        <div class="card-sub" id="pres-sub">--</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Rain</div>
+        <div class="card-value" id="val-rain" style="font-size:22px;padding-top:4px;">--</div>
+        <div class="card-sub" id="rain-sub">--</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Light level</div>
+        <div class="card-value"><span id="val-light">--</span><span class="card-unit">lux</span></div>
+        <div class="card-sub" id="light-sub">--</div>
+      </div>
+      <div class="card card-full">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div class="card-label">Discomfort index</div>
+            <div class="card-value"><span id="val-disc">--</span> <span class="card-unit" id="disc-level">--</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="card-label">Feels like</div>
+            <div style="font-size:22px;font-weight:300;margin-top:2px;"><span id="val-feels">--</span>°C</div>
+          </div>
+        </div>
+        <div class="disc-bar-bg">
+          <div class="disc-bar-fill" id="disc-bar" style="width:0%"></div>
+        </div>
+        <div class="disc-status-text" id="disc-text">--</div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">24h temperature trend</span>
+          <span style="font-size:11px;opacity:0.5;" id="chart-range">--</span>
+        </div>
+        <canvas id="tempChart" height="90"></canvas>
+      </div>
+    </div>
+
+    <div class="forecast-section">
+      <div class="forecast-card">
+        <div class="forecast-label">Next 3 Hours</div>
+        <div class="forecast-row" id="next-hours-row">
+          <div class="forecast-item"><span class="f-time">--</span><span class="f-temp">--°</span><span class="f-cond">--</span></div>
+          <div class="forecast-item"><span class="f-time">--</span><span class="f-temp">--°</span><span class="f-cond">--</span></div>
+          <div class="forecast-item"><span class="f-time">--</span><span class="f-temp">--°</span><span class="f-cond">--</span></div>
+        </div>
+      </div>
+      <div class="forecast-card">
+        <div class="forecast-label">Yesterday</div>
+        <div class="yesterday-data">
+          <div class="y-temps"><span class="y-high" id="y-high">--°</span> <span class="y-sep">/</span> <span class="y-low" id="y-low">--°</span></div>
+          <div class="y-cond" id="y-cond">--</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-card">
+        <div class="report-label">Auto-generated weather report</div>
+        <div class="report-text" id="report-text">Initializing...</div>
+      </div>
+    </div>
+
+    <div class="theme-switcher">
+      <button class="theme-btn active" id="btn-auto" onclick="enableAutoMode()">🔄 Auto</button>
+      <button class="theme-btn" onclick="setScenario('pleasant')">☀️ Pleasant</button>
+      <button class="theme-btn" onclick="setScenario('partlycloudy')">⛅ Partly Cloudy</button>
+      <button class="theme-btn" onclick="setScenario('cloudy')">☁️ Cloudy</button>
+      <button class="theme-btn" onclick="setScenario('fog')">🌫️ Foggy</button>
+      <button class="theme-btn" onclick="setScenario('hot')">🔥 Scorching</button>
+      <button class="theme-btn" onclick="setScenario('rain')">🌧 Rainy</button>
+      <button class="theme-btn" onclick="setScenario('night')">🌙 Night</button>
+      <button class="theme-btn" onclick="setScenario('cold')">❄️ Cold</button>
+      <button class="theme-btn" onclick="setScenario('storm')">⛈ Storm</button>
+      <button class="theme-btn" onclick="setScenario('dawn')">🌅 Dawn</button>
+      <button class="theme-btn" onclick="setScenario('dusk')">🌇 Dusk</button>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
